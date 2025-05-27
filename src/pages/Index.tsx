@@ -6,6 +6,7 @@ import { Header } from '@/components/Layout/Header';
 import { Sidebar } from '@/components/Layout/Sidebar';
 import { Dashboard } from '@/components/Dashboard/Dashboard';
 import { ProductosList } from '@/components/Productos/ProductosList';
+import { CategoriasList } from '@/components/Categorias/CategoriasList';
 import { VentaCarrito } from '@/components/Ventas/VentaCarrito';
 
 const Index = () => {
@@ -18,7 +19,7 @@ const Index = () => {
       case 'productos':
         return <ProductosList />;
       case 'categorias':
-        return <div className="p-6">Gestión de Categorías (próximamente)</div>;
+        return <CategoriasList />;
       case 'ventas':
         return <VentaCarrito />;
       case 'clientes':
