@@ -8,6 +8,8 @@ import { Dashboard } from '@/components/Dashboard/Dashboard';
 import { ProductosList } from '@/components/Productos/ProductosList';
 import { CategoriasList } from '@/components/Categorias/CategoriasList';
 import { VentaCarrito } from '@/components/Ventas/VentaCarrito';
+import { ClientesList } from '@/components/Clientes/ClientesList';
+import { Reportes } from '@/components/Reportes/Reportes';
 
 const Index = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -23,9 +25,9 @@ const Index = () => {
       case 'ventas':
         return <VentaCarrito />;
       case 'clientes':
-        return <div className="p-6">Gestión de Clientes (próximamente)</div>;
+        return <ClientesList />;
       case 'reportes':
-        return <div className="p-6">Reportes (próximamente)</div>;
+        return <Reportes />;
       default:
         return <Dashboard />;
     }
