@@ -1,13 +1,49 @@
-// Update this page (the content is just a fallback if you fail to update the page)
+
+import { useState } from 'react';
+import { StoreProvider } from '@/contexts/StoreContext';
+import { ThemeProvider } from '@/contexts/ThemeContext';
+import { Header } from '@/components/Layout/Header';
+import { Sidebar } from '@/components/Layout/Sidebar';
+import { Dashboard } from '@/components/Dashboard/Dashboard';
+import { ProductosList } from '@/components/Productos/ProductosList';
+import { VentaCarrito } from '@/components/Ventas/VentaCarrito';
 
 const Index = () => {
+  const [activeTab, setActiveTab] = useState('dashboard');
+
+  const renderContent = () => {
+    switch (activeTab) {
+      case 'dashboard':
+        return <Dashboard />;
+      case 'productos':
+        return <ProductosList />;
+      case 'categorias':
+        return <div className="p-6">Gestión de Categorías (próximamente)</div>;
+      case 'ventas':
+        return <VentaCarrito />;
+      case 'clientes':
+        return <div className="p-6">Gestión de Clientes (próximamente)</div>;
+      case 'reportes':
+        return <div className="p-6">Reportes (próximamente)</div>;
+      default:
+        return <Dashboard />;
+    }
+  };
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100">
-      <div className="text-center">
-        <h1 className="text-4xl font-bold mb-4">Welcome to Your Blank App</h1>
-        <p className="text-xl text-gray-600">Start building your amazing project here!</p>
-      </div>
-    </div>
+    <ThemeProvider>
+      <StoreProvider>
+        <div className="min-h-screen bg-gray-50 dark:bg-gray-900 w-full">
+          <Header />
+          <div className="flex w-full">
+            <Sidebar activeTab={activeTab} onTabChange={setActiveTab} />
+            <main className="flex-1 p-6">
+              {renderContent()}
+            </main>
+          </div>
+        </div>
+      </StoreProvider>
+    </ThemeProvider>
   );
 };
 
