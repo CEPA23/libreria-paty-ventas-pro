@@ -11,13 +11,14 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { useStore } from '@/contexts/StoreContext';
 import { useToast } from '@/hooks/use-toast';
 import { Plus, X } from 'lucide-react';
+import { Categoria } from '@/types';
 
 const categoriaSchema = z.object({
   nombre: z.string().min(1, 'El nombre es requerido'),
   descripcion: z.string().optional()
 });
 
-type CategoriaFormData = z.infer<typeof categoriaSchema>;
+type CategoriaFormData = Omit<Categoria, 'id'>;
 
 export function CategoriaForm() {
   const [isOpen, setIsOpen] = useState(false);
