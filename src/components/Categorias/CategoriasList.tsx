@@ -4,14 +4,37 @@ import { useStore } from '@/contexts/StoreContext';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Edit, Trash2, FolderOpen } from 'lucide-react';
 import { CategoriaForm } from './CategoriaForm';
+import { useToast } from '@/hooks/use-toast';
+import { Categoria } from '@/types';
 
 export function CategoriasList() {
-  const { categorias, productos } = useStore();
+  const { categorias, productos, eliminarCategoria } = useStore();
+  const { toast } = useToast();
+  const [categoriaEditando, setCategoriaEditando] = useState<Categoria | null>(null);
 
   const getProductosEnCategoria = (categoriaNombre: string) => {
     return productos.filter(producto => producto.categoria === categoriaNombre).length;
+  };
+
+  const handleEliminar = (categoria: Categoria) => {
+    const productosCount = getProductosEnCategoria(categoria.nombre);
+    if (productosCount > 0) {
+      toast({
+        title: "No se puede eliminar",
+        description: "Esta categoría tiene productos asociados",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    eliminarCategoria(categoria.id);
+    toast({
+      title: "Categoría eliminada",
+      description: "La categoría se ha eliminado exitosamente",
+    });
   };
 
   return (
@@ -22,7 +45,14 @@ export function CategoriasList() {
         </h1>
       </div>
 
-      <CategoriaForm />
+      {categoriaEditando ? (
+        <CategoriaForm 
+          categoria={categoriaEditando} 
+          onClose={() => setCategoriaEditando(null)} 
+        />
+      ) : (
+        <CategoriaForm />
+      )}
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {categorias.map((categoria) => {
@@ -47,19 +77,45 @@ export function CategoriasList() {
                 )}
                 
                 <div className="flex gap-2">
-                  <Button variant="outline" size="sm">
-                    <Edit className="w-4 h-4 mr-1" />
-                    Editar
-                  </Button>
                   <Button 
                     variant="outline" 
                     size="sm"
-                    className="text-red-600 hover:text-red-700"
-                    disabled={productosCount > 0}
+                    onClick={() => setCategoriaEditando(categoria)}
                   >
-                    <Trash2 className="w-4 h-4 mr-1" />
-                    Eliminar
+                    <Edit className="w-4 h-4 mr-1" />
+                    Editar
                   </Button>
+                  
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        className="text-red-600 hover:text-red-700"
+                        disabled={productosCount > 0}
+                      >
+                        <Trash2 className="w-4 h-4 mr-1" />
+                        Eliminar
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          Esta acción no se puede deshacer. Esto eliminará permanentemente la categoría "{categoria.nombre}".
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                        <AlertDialogAction 
+                          onClick={() => handleEliminar(categoria)}
+                          className="bg-red-600 hover:bg-red-700"
+                        >
+                          Eliminar
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
                 </div>
                 
                 {productosCount > 0 && (

@@ -20,38 +20,60 @@ const categoriaSchema = z.object({
 
 type CategoriaFormData = Omit<Categoria, 'id'>;
 
-export function CategoriaForm() {
-  const [isOpen, setIsOpen] = useState(false);
-  const { agregarCategoria } = useStore();
+interface CategoriaFormProps {
+  categoria?: Categoria;
+  onClose?: () => void;
+}
+
+export function CategoriaForm({ categoria, onClose }: CategoriaFormProps) {
+  const [isOpen, setIsOpen] = useState(!!categoria);
+  const { agregarCategoria, actualizarCategoria } = useStore();
   const { toast } = useToast();
+  const isEditing = !!categoria;
 
   const form = useForm<CategoriaFormData>({
     resolver: zodResolver(categoriaSchema),
     defaultValues: {
-      nombre: '',
-      descripcion: ''
+      nombre: categoria?.nombre || '',
+      descripcion: categoria?.descripcion || ''
     }
   });
 
   const onSubmit = (data: CategoriaFormData) => {
     try {
-      agregarCategoria(data);
-      toast({
-        title: "Categoría creada",
-        description: "La categoría se ha creado exitosamente",
-      });
+      if (isEditing && categoria) {
+        actualizarCategoria(categoria.id, data);
+        toast({
+          title: "Categoría actualizada",
+          description: "La categoría se ha actualizado exitosamente",
+        });
+      } else {
+        agregarCategoria(data);
+        toast({
+          title: "Categoría creada",
+          description: "La categoría se ha creado exitosamente",
+        });
+      }
       form.reset();
-      setIsOpen(false);
+      handleClose();
     } catch (error) {
       toast({
         title: "Error",
-        description: "No se pudo crear la categoría",
+        description: `No se pudo ${isEditing ? 'actualizar' : 'crear'} la categoría`,
         variant: "destructive",
       });
     }
   };
 
-  if (!isOpen) {
+  const handleClose = () => {
+    setIsOpen(false);
+    form.reset();
+    if (onClose) {
+      onClose();
+    }
+  };
+
+  if (!isOpen && !isEditing) {
     return (
       <Button onClick={() => setIsOpen(true)} className="mb-6">
         <Plus className="w-4 h-4 mr-2" />
@@ -63,14 +85,11 @@ export function CategoriaForm() {
   return (
     <Card className="mb-6">
       <CardHeader className="flex flex-row items-center justify-between">
-        <CardTitle>Nueva Categoría</CardTitle>
+        <CardTitle>{isEditing ? 'Editar Categoría' : 'Nueva Categoría'}</CardTitle>
         <Button
           variant="ghost"
           size="icon"
-          onClick={() => {
-            setIsOpen(false);
-            form.reset();
-          }}
+          onClick={handleClose}
         >
           <X className="w-4 h-4" />
         </Button>
@@ -111,15 +130,12 @@ export function CategoriaForm() {
 
             <div className="flex gap-2">
               <Button type="submit">
-                Crear Categoría
+                {isEditing ? 'Actualizar' : 'Crear'} Categoría
               </Button>
               <Button
                 type="button"
                 variant="outline"
-                onClick={() => {
-                  setIsOpen(false);
-                  form.reset();
-                }}
+                onClick={handleClose}
               >
                 Cancelar
               </Button>

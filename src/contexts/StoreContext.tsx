@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, ReactNode } from 'react';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
 import { Producto, Categoria, Cliente, Venta } from '@/types';
@@ -12,6 +11,8 @@ interface StoreContextType {
   actualizarProducto: (id: string, producto: Partial<Producto>) => void;
   eliminarProducto: (id: string) => void;
   agregarCategoria: (categoria: Omit<Categoria, 'id'>) => void;
+  actualizarCategoria: (id: string, categoria: Partial<Categoria>) => void;
+  eliminarCategoria: (id: string) => void;
   agregarCliente: (cliente: Omit<Cliente, 'id'>) => void;
   registrarVenta: (venta: Omit<Venta, 'id'>) => void;
   actualizarStock: (productoId: string, cantidadVendida: number) => void;
@@ -65,6 +66,14 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     setCategorias(prev => [...prev, categoria]);
   };
 
+  const actualizarCategoria = (id: string, datosActualizados: Partial<Categoria>) => {
+    setCategorias(prev => prev.map(c => c.id === id ? { ...c, ...datosActualizados } : c));
+  };
+
+  const eliminarCategoria = (id: string) => {
+    setCategorias(prev => prev.filter(c => c.id !== id));
+  };
+
   const agregarCliente = (nuevoCliente: Omit<Cliente, 'id'>) => {
     const cliente: Cliente = {
       ...nuevoCliente,
@@ -99,6 +108,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       actualizarProducto,
       eliminarProducto,
       agregarCategoria,
+      actualizarCategoria,
+      eliminarCategoria,
       agregarCliente,
       registrarVenta,
       actualizarStock
