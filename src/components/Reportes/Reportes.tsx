@@ -54,7 +54,7 @@ export function Reportes() {
     const ventasPorCategoria = new Map<string, { cantidad: number; ingresos: number }>();
     
     productosVendidos.forEach(item => {
-      const categoria = item.producto.categoria;
+      const categoria = item.producto.categoria?.nombre || 'Sin categoría';
       const existing = ventasPorCategoria.get(categoria);
       if (existing) {
         existing.cantidad += item.cantidad;
@@ -265,7 +265,7 @@ export function Reportes() {
                       <div className="text-sm text-gray-500">{item.producto.marca}</div>
                     </TableCell>
                     <TableCell>
-                      <Badge variant="outline">{item.producto.categoria}</Badge>
+                      <Badge variant="outline">{item.producto.categoria?.nombre || 'Sin categoría'}</Badge>
                     </TableCell>
                     <TableCell>{item.cantidad}</TableCell>
                     <TableCell>S/. {item.ingresos.toFixed(2)}</TableCell>
@@ -301,7 +301,7 @@ export function Reportes() {
                       <div className="text-sm text-gray-500">{producto.marca}</div>
                     </TableCell>
                     <TableCell>
-                      <Badge variant="outline">{producto.categoria}</Badge>
+                      <Badge variant="outline">{producto.categoria?.nombre || 'Sin categoría'}</Badge>
                     </TableCell>
                     <TableCell>
                       <Badge variant="destructive">{producto.stock}</Badge>

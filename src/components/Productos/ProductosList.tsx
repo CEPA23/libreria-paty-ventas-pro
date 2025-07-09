@@ -55,7 +55,7 @@ export function ProductosList() {
                   <CardTitle className="text-lg">{producto.nombre}</CardTitle>
                   <p className="text-sm text-gray-600 dark:text-gray-400">{producto.marca}</p>
                 </div>
-                <Badge variant="outline">{producto.categoria}</Badge>
+                <Badge variant="outline">{producto.categoria?.nombre || 'Sin categoría'}</Badge>
               </div>
             </CardHeader>
             <CardContent>

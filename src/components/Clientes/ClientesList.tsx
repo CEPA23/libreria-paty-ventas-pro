@@ -43,7 +43,7 @@ export function ClientesList() {
                     <TableCell className="font-medium">{cliente.nombre}</TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
-                        <Badge variant="outline">{cliente.tipoDocumento}</Badge>
+                        <Badge variant="outline">{cliente.tipo_documento}</Badge>
                         <span>{cliente.documento}</span>
                       </div>
                     </TableCell>

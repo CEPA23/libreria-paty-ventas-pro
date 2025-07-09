@@ -16,7 +16,7 @@ import { Cliente } from '@/types';
 const clienteSchema = z.object({
   nombre: z.string().min(1, 'El nombre es requerido'),
   documento: z.string().min(8, 'El documento debe tener al menos 8 caracteres'),
-  tipoDocumento: z.enum(['DNI', 'RUC']),
+  tipo_documento: z.enum(['DNI', 'RUC']),
   telefono: z.string().optional(),
   email: z.string().email('Email inválido').optional().or(z.literal(''))
 });
@@ -33,7 +33,7 @@ export function ClienteForm() {
     defaultValues: {
       nombre: '',
       documento: '',
-      tipoDocumento: 'DNI',
+      tipo_documento: 'DNI',
       telefono: '',
       email: ''
     }
@@ -106,7 +106,7 @@ export function ClienteForm() {
 
               <FormField
                 control={form.control}
-                name="tipoDocumento"
+                name="tipo_documento"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Tipo de Documento</FormLabel>

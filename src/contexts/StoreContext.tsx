@@ -1,101 +1,255 @@
-import React, { createContext, useContext, ReactNode } from 'react';
-import { useLocalStorage } from '@/hooks/useLocalStorage';
-import { Producto, Categoria, Cliente, Venta } from '@/types';
+import React, { createContext, useContext, ReactNode, useState, useEffect } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { Producto, Categoria, Cliente, Venta, ItemVenta } from '@/types';
 
 interface StoreContextType {
   productos: Producto[];
   categorias: Categoria[];
   clientes: Cliente[];
   ventas: Venta[];
-  agregarProducto: (producto: Omit<Producto, 'id'>) => void;
-  actualizarProducto: (id: string, producto: Partial<Producto>) => void;
-  eliminarProducto: (id: string) => void;
-  agregarCategoria: (categoria: Omit<Categoria, 'id'>) => void;
-  actualizarCategoria: (id: string, categoria: Partial<Categoria>) => void;
-  eliminarCategoria: (id: string) => void;
-  agregarCliente: (cliente: Omit<Cliente, 'id'>) => void;
-  registrarVenta: (venta: Omit<Venta, 'id'>) => void;
-  actualizarStock: (productoId: string, cantidadVendida: number) => void;
+  loading: boolean;
+  agregarProducto: (producto: Omit<Producto, 'id'>) => Promise<void>;
+  actualizarProducto: (id: string, producto: Partial<Producto>) => Promise<void>;
+  eliminarProducto: (id: string) => Promise<void>;
+  agregarCategoria: (categoria: Omit<Categoria, 'id'>) => Promise<void>;
+  actualizarCategoria: (id: string, categoria: Partial<Categoria>) => Promise<void>;
+  eliminarCategoria: (id: string) => Promise<void>;
+  agregarCliente: (cliente: Omit<Cliente, 'id'>) => Promise<void>;
+  registrarVenta: (venta: Omit<Venta, 'id'>) => Promise<void>;
+  actualizarStock: (productoId: string, cantidadVendida: number) => Promise<void>;
+  fetchData: () => Promise<void>;
 }
 
 const StoreContext = createContext<StoreContextType | undefined>(undefined);
 
-const categoriasIniciales: Categoria[] = [
-  { id: '1', nombre: 'Cuadernos', descripcion: 'Cuadernos y libretas' },
-  { id: '2', nombre: 'Lapiceros', descripcion: 'Bolígrafos y plumas' },
-  { id: '3', nombre: 'Útiles Escolares', descripcion: 'Material escolar básico' },
-  { id: '4', nombre: 'Papelería', descripcion: 'Papel y material de oficina' },
-  { id: '5', nombre: 'Artículos de Arte', descripcion: 'Materiales para dibujo y pintura' }
-];
-
-const productosIniciales: Producto[] = [
-  { id: '1', nombre: 'Cuaderno Cuadriculado A4', marca: 'Stanford', precio: 8.50, stock: 25, categoria: 'Cuadernos' },
-  { id: '2', nombre: 'Lapicero Azul', marca: 'Pilot', precio: 2.00, stock: 50, categoria: 'Lapiceros' },
-  { id: '3', nombre: 'Borrador Blanco', marca: 'Faber-Castell', precio: 1.50, stock: 30, categoria: 'Útiles Escolares' },
-  { id: '4', nombre: 'Hojas Bond A4', marca: 'Copy', precio: 12.00, stock: 20, categoria: 'Papelería' },
-  { id: '5', nombre: 'Lápices de Colores x12', marca: 'Faber-Castell', precio: 15.50, stock: 15, categoria: 'Artículos de Arte' }
-];
-
 export function StoreProvider({ children }: { children: ReactNode }) {
-  const [productos, setProductos] = useLocalStorage<Producto[]>('libreria-productos', productosIniciales);
-  const [categorias, setCategorias] = useLocalStorage<Categoria[]>('libreria-categorias', categoriasIniciales);
-  const [clientes, setClientes] = useLocalStorage<Cliente[]>('libreria-clientes', []);
-  const [ventas, setVentas] = useLocalStorage<Venta[]>('libreria-ventas', []);
+  const [productos, setProductos] = useState<Producto[]>([]);
+  const [categorias, setCategorias] = useState<Categoria[]>([]);
+  const [clientes, setClientes] = useState<Cliente[]>([]);
+  const [ventas, setVentas] = useState<Venta[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const agregarProducto = (nuevoProducto: Omit<Producto, 'id'>) => {
-    const producto: Producto = {
-      ...nuevoProducto,
-      id: Date.now().toString()
-    };
-    setProductos(prev => [...prev, producto]);
+  const fetchData = async () => {
+    try {
+      setLoading(true);
+      
+      // Fetch categorias
+      const { data: categoriasData, error: categoriasError } = await supabase
+        .from('categorias')
+        .select('*');
+      
+      if (categoriasError) throw categoriasError;
+      
+      // Fetch productos with categorias
+      const { data: productosData, error: productosError } = await supabase
+        .from('productos')
+        .select(`
+          *,
+          categoria:categorias(*)
+        `);
+      
+      if (productosError) throw productosError;
+      
+      // Fetch clientes
+      const { data: clientesData, error: clientesError } = await supabase
+        .from('clientes')
+        .select('*');
+      
+      if (clientesError) throw clientesError;
+      
+      // Fetch ventas with clientes and items
+      const { data: ventasData, error: ventasError } = await supabase
+        .from('ventas')
+        .select(`
+          *,
+          cliente:clientes(*),
+          items:items_venta(
+            *,
+            producto:productos(*)
+          )
+        `);
+      
+      if (ventasError) throw ventasError;
+      
+      setCategorias(categoriasData || []);
+      setProductos(productosData || []);
+      setClientes((clientesData || []) as Cliente[]);
+      setVentas((ventasData || []) as Venta[]);
+    } catch (error) {
+      console.error('Error fetching data:', error);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const actualizarProducto = (id: string, datosActualizados: Partial<Producto>) => {
-    setProductos(prev => prev.map(p => p.id === id ? { ...p, ...datosActualizados } : p));
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  const agregarProducto = async (nuevoProducto: Omit<Producto, 'id'>) => {
+    const { data, error } = await supabase
+      .from('productos')
+      .insert([{
+        nombre: nuevoProducto.nombre,
+        marca: nuevoProducto.marca,
+        precio: nuevoProducto.precio,
+        stock: nuevoProducto.stock,
+        categoria_id: nuevoProducto.categoria_id
+      }])
+      .select(`
+        *,
+        categoria:categorias(*)
+      `);
+    
+    if (error) throw error;
+    if (data) {
+      setProductos(prev => [...prev, ...data]);
+    }
   };
 
-  const eliminarProducto = (id: string) => {
+  const actualizarProducto = async (id: string, datosActualizados: Partial<Producto>) => {
+    const { data, error } = await supabase
+      .from('productos')
+      .update(datosActualizados)
+      .eq('id', id)
+      .select(`
+        *,
+        categoria:categorias(*)
+      `);
+    
+    if (error) throw error;
+    if (data) {
+      setProductos(prev => prev.map(p => p.id === id ? data[0] : p));
+    }
+  };
+
+  const eliminarProducto = async (id: string) => {
+    const { error } = await supabase
+      .from('productos')
+      .delete()
+      .eq('id', id);
+    
+    if (error) throw error;
     setProductos(prev => prev.filter(p => p.id !== id));
   };
 
-  const agregarCategoria = (nuevaCategoria: Omit<Categoria, 'id'>) => {
-    const categoria: Categoria = {
-      ...nuevaCategoria,
-      id: Date.now().toString()
-    };
-    setCategorias(prev => [...prev, categoria]);
+  const agregarCategoria = async (nuevaCategoria: Omit<Categoria, 'id'>) => {
+    const { data, error } = await supabase
+      .from('categorias')
+      .insert([nuevaCategoria])
+      .select();
+    
+    if (error) throw error;
+    if (data) {
+      setCategorias(prev => [...prev, ...data]);
+    }
   };
 
-  const actualizarCategoria = (id: string, datosActualizados: Partial<Categoria>) => {
-    setCategorias(prev => prev.map(c => c.id === id ? { ...c, ...datosActualizados } : c));
+  const actualizarCategoria = async (id: string, datosActualizados: Partial<Categoria>) => {
+    const { data, error } = await supabase
+      .from('categorias')
+      .update(datosActualizados)
+      .eq('id', id)
+      .select();
+    
+    if (error) throw error;
+    if (data) {
+      setCategorias(prev => prev.map(c => c.id === id ? data[0] : c));
+    }
   };
 
-  const eliminarCategoria = (id: string) => {
+  const eliminarCategoria = async (id: string) => {
+    const { error } = await supabase
+      .from('categorias')
+      .delete()
+      .eq('id', id);
+    
+    if (error) throw error;
     setCategorias(prev => prev.filter(c => c.id !== id));
   };
 
-  const agregarCliente = (nuevoCliente: Omit<Cliente, 'id'>) => {
-    const cliente: Cliente = {
-      ...nuevoCliente,
-      id: Date.now().toString()
-    };
-    setClientes(prev => [...prev, cliente]);
+  const agregarCliente = async (nuevoCliente: Omit<Cliente, 'id'>) => {
+    const { data, error } = await supabase
+      .from('clientes')
+      .insert([nuevoCliente])
+      .select();
+    
+    if (error) throw error;
+    if (data) {
+      setClientes(prev => [...prev, ...(data as Cliente[])]);
+    }
   };
 
-  const registrarVenta = (nuevaVenta: Omit<Venta, 'id'>) => {
-    const venta: Venta = {
-      ...nuevaVenta,
-      id: Date.now().toString()
-    };
-    setVentas(prev => [...prev, venta]);
+  const registrarVenta = async (nuevaVenta: Omit<Venta, 'id'>) => {
+    const { data: ventaData, error: ventaError } = await supabase
+      .from('ventas')
+      .insert([{
+        cliente_id: nuevaVenta.cliente_id,
+        total: nuevaVenta.total,
+        estado: nuevaVenta.estado,
+        fecha: nuevaVenta.fecha
+      }])
+      .select()
+      .single();
+    
+    if (ventaError) throw ventaError;
+    
+    // Insert venta items
+    if (nuevaVenta.items && nuevaVenta.items.length > 0) {
+      const itemsToInsert = nuevaVenta.items.map(item => ({
+        venta_id: ventaData.id,
+        producto_id: item.producto_id,
+        cantidad: item.cantidad,
+        precio_unitario: item.precio_unitario,
+        subtotal: item.subtotal
+      }));
+      
+      const { error: itemsError } = await supabase
+        .from('items_venta')
+        .insert(itemsToInsert);
+      
+      if (itemsError) throw itemsError;
+    }
+    
+    // Fetch complete venta data
+    const { data: completaVenta, error: fetchError } = await supabase
+      .from('ventas')
+      .select(`
+        *,
+        cliente:clientes(*),
+        items:items_venta(
+          *,
+          producto:productos(*)
+        )
+      `)
+      .eq('id', ventaData.id)
+      .single();
+    
+    if (fetchError) throw fetchError;
+    if (completaVenta) {
+      setVentas(prev => [...prev, completaVenta as Venta]);
+    }
   };
 
-  const actualizarStock = (productoId: string, cantidadVendida: number) => {
-    setProductos(prev => prev.map(p => 
-      p.id === productoId 
-        ? { ...p, stock: Math.max(0, p.stock - cantidadVendida) }
-        : p
-    ));
+  const actualizarStock = async (productoId: string, cantidadVendida: number) => {
+    const producto = productos.find(p => p.id === productoId);
+    if (!producto) return;
+    
+    const nuevoStock = Math.max(0, producto.stock - cantidadVendida);
+    
+    const { data, error } = await supabase
+      .from('productos')
+      .update({ stock: nuevoStock })
+      .eq('id', productoId)
+      .select(`
+        *,
+        categoria:categorias(*)
+      `);
+    
+    if (error) throw error;
+    if (data) {
+      setProductos(prev => prev.map(p => p.id === productoId ? data[0] : p));
+    }
   };
 
   return (
@@ -104,6 +258,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       categorias,
       clientes,
       ventas,
+      loading,
       agregarProducto,
       actualizarProducto,
       eliminarProducto,
@@ -112,7 +267,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       eliminarCategoria,
       agregarCliente,
       registrarVenta,
-      actualizarStock
+      actualizarStock,
+      fetchData
     }}>
       {children}
     </StoreContext.Provider>

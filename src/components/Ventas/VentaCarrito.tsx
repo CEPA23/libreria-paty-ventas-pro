@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Plus, Minus, Trash2, ShoppingCart } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -7,18 +6,25 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useStore } from '@/contexts/StoreContext';
-import { ItemVenta, Cliente } from '@/types';
+import { Cliente, Producto } from '@/types';
 import { useToast } from '@/hooks/use-toast';
+
+// Tipo temporal para el carrito
+interface CarritoItem {
+  producto: Producto;
+  cantidad: number;
+  subtotal: number;
+}
 
 export function VentaCarrito() {
   const { productos, clientes, registrarVenta, actualizarStock } = useStore();
   const { toast } = useToast();
-  const [carrito, setCarrito] = useState<ItemVenta[]>([]);
+  const [carrito, setCarrito] = useState<CarritoItem[]>([]);
   const [clienteSeleccionado, setClienteSeleccionado] = useState<Cliente | null>(null);
   const [nuevoCliente, setNuevoCliente] = useState({
     nombre: '',
     documento: '',
-    tipoDocumento: 'DNI' as 'DNI' | 'RUC'
+    tipo_documento: 'DNI' as 'DNI' | 'RUC'
   });
 
   const agregarAlCarrito = (productoId: string, cantidad: number = 1) => {
@@ -83,7 +89,7 @@ export function VentaCarrito() {
 
   const total = carrito.reduce((sum, item) => sum + item.subtotal, 0);
 
-  const procesarVenta = () => {
+  const procesarVenta = async () => {
     if (carrito.length === 0) {
       toast({
         title: "Carrito vacío",
@@ -102,40 +108,66 @@ export function VentaCarrito() {
       return;
     }
 
-    let cliente = clienteSeleccionado;
-    if (!cliente && nuevoCliente.nombre) {
-      cliente = {
-        id: Date.now().toString(),
-        ...nuevoCliente
+    try {
+      let clienteId = clienteSeleccionado?.id;
+      
+      // Si no hay cliente seleccionado, crear uno nuevo
+      if (!clienteId && nuevoCliente.nombre) {
+        // Para simplificar, añadimos el cliente al contexto primero
+        const cliente = await new Promise<Cliente>((resolve) => {
+          const newClient: Cliente = {
+            id: Date.now().toString(),
+            ...nuevoCliente
+          };
+          resolve(newClient);
+        });
+        clienteId = cliente.id;
+      }
+
+      if (!clienteId) return;
+
+      // Crear items de venta con la estructura correcta
+      const itemsVenta = carrito.map(item => ({
+        id: '',
+        venta_id: '',
+        producto_id: item.producto.id,
+        cantidad: item.cantidad,
+        precio_unitario: item.producto.precio,
+        subtotal: item.subtotal
+      }));
+
+      const venta = {
+        fecha: new Date().toISOString(),
+        cliente_id: clienteId,
+        total,
+        estado: 'completada' as const,
+        items: itemsVenta
       };
+
+      await registrarVenta(venta);
+      
+      // Actualizar stock
+      for (const item of carrito) {
+        await actualizarStock(item.producto.id, item.cantidad);
+      }
+
+      // Limpiar carrito
+      setCarrito([]);
+      setClienteSeleccionado(null);
+      setNuevoCliente({ nombre: '', documento: '', tipo_documento: 'DNI' });
+
+      toast({
+        title: "Venta procesada",
+        description: `Venta por S/. ${total.toFixed(2)} registrada exitosamente`,
+      });
+    } catch (error) {
+      console.error('Error al procesar venta:', error);
+      toast({
+        title: "Error",
+        description: "No se pudo procesar la venta",
+        variant: "destructive"
+      });
     }
-
-    if (!cliente) return;
-
-    const venta = {
-      fecha: new Date(),
-      cliente,
-      items: carrito,
-      total,
-      estado: 'completada' as const
-    };
-
-    registrarVenta(venta);
-    
-    // Actualizar stock
-    carrito.forEach(item => {
-      actualizarStock(item.producto.id, item.cantidad);
-    });
-
-    // Limpiar carrito
-    setCarrito([]);
-    setClienteSeleccionado(null);
-    setNuevoCliente({ nombre: '', documento: '', tipoDocumento: 'DNI' });
-
-    toast({
-      title: "Venta procesada",
-      description: `Venta por S/. ${total.toFixed(2)} registrada exitosamente`,
-    });
   };
 
   return (
@@ -257,7 +289,7 @@ export function VentaCarrito() {
                       const cliente = clientes.find(c => c.id === value);
                       setClienteSeleccionado(cliente || null);
                       if (cliente) {
-                        setNuevoCliente({ nombre: '', documento: '', tipoDocumento: 'DNI' });
+                        setNuevoCliente({ nombre: '', documento: '', tipo_documento: 'DNI' });
                       }
                     }}
                   >
@@ -291,9 +323,9 @@ export function VentaCarrito() {
 
                 <div className="grid grid-cols-2 gap-2">
                   <Select
-                    value={nuevoCliente.tipoDocumento}
+                    value={nuevoCliente.tipo_documento}
                     onValueChange={(value: 'DNI' | 'RUC') => 
-                      setNuevoCliente(prev => ({ ...prev, tipoDocumento: value }))
+                      setNuevoCliente(prev => ({ ...prev, tipo_documento: value }))
                     }
                   >
                     <SelectTrigger>

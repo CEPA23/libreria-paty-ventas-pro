@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -20,18 +19,22 @@ export function ProductoForm({ onSubmit, productoEditar }: ProductoFormProps) {
     marca: productoEditar?.marca || '',
     precio: productoEditar?.precio || 0,
     stock: productoEditar?.stock || 0,
-    categoria: productoEditar?.categoria || ''
+    categoria_id: productoEditar?.categoria_id || ''
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (productoEditar) {
-      actualizarProducto(productoEditar.id, formData);
-    } else {
-      agregarProducto(formData);
+    try {
+      if (productoEditar) {
+        await actualizarProducto(productoEditar.id, formData);
+      } else {
+        await agregarProducto(formData);
+      }
+      setFormData({ nombre: '', marca: '', precio: 0, stock: 0, categoria_id: '' });
+      onSubmit();
+    } catch (error) {
+      console.error('Error al guardar producto:', error);
     }
-    setFormData({ nombre: '', marca: '', precio: 0, stock: 0, categoria: '' });
-    onSubmit();
   };
 
   return (
@@ -93,15 +96,15 @@ export function ProductoForm({ onSubmit, productoEditar }: ProductoFormProps) {
           <div>
             <Label htmlFor="categoria">Categoría</Label>
             <Select
-              value={formData.categoria}
-              onValueChange={(value) => setFormData(prev => ({ ...prev, categoria: value }))}
+              value={formData.categoria_id}
+              onValueChange={(value) => setFormData(prev => ({ ...prev, categoria_id: value }))}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Seleccionar categoría" />
               </SelectTrigger>
               <SelectContent>
                 {categorias.map(categoria => (
-                  <SelectItem key={categoria.id} value={categoria.nombre}>
+                  <SelectItem key={categoria.id} value={categoria.id}>
                     {categoria.nombre}
                   </SelectItem>
                 ))}

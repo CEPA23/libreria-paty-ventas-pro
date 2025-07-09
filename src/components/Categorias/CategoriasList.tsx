@@ -15,12 +15,12 @@ export function CategoriasList() {
   const { toast } = useToast();
   const [categoriaEditando, setCategoriaEditando] = useState<Categoria | null>(null);
 
-  const getProductosEnCategoria = (categoriaNombre: string) => {
-    return productos.filter(producto => producto.categoria === categoriaNombre).length;
+  const getProductosEnCategoria = (categoriaId: string) => {
+    return productos.filter(producto => producto.categoria_id === categoriaId).length;
   };
 
-  const handleEliminar = (categoria: Categoria) => {
-    const productosCount = getProductosEnCategoria(categoria.nombre);
+  const handleEliminar = async (categoria: Categoria) => {
+    const productosCount = getProductosEnCategoria(categoria.id);
     if (productosCount > 0) {
       toast({
         title: "No se puede eliminar",
@@ -30,11 +30,19 @@ export function CategoriasList() {
       return;
     }
 
-    eliminarCategoria(categoria.id);
-    toast({
-      title: "Categoría eliminada",
-      description: "La categoría se ha eliminado exitosamente",
-    });
+    try {
+      await eliminarCategoria(categoria.id);
+      toast({
+        title: "Categoría eliminada",
+        description: "La categoría se ha eliminado exitosamente",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "No se pudo eliminar la categoría",
+        variant: "destructive",
+      });
+    }
   };
 
   return (
@@ -56,7 +64,7 @@ export function CategoriasList() {
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {categorias.map((categoria) => {
-          const productosCount = getProductosEnCategoria(categoria.nombre);
+          const productosCount = getProductosEnCategoria(categoria.id);
           
           return (
             <Card key={categoria.id} className="hover:shadow-lg transition-shadow">
